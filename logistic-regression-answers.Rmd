@@ -1,0 +1,167 @@
+---
+title: "Logistic Regression"
+author: "Scott Stoltzman"
+date: "7/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("tidyverse")
+library("modelr")
+library("caret")
+```
+
+# Logistic regression (Again!)
+
+Previously, you used logistic regression on the `titanic_train` data set. This was to familiarize you with adding a classification model to your data. This time, you will tune your model and defend your decisions.
+
+Use logistic regression to predict `Survived` from `titanic_train` data set
+```{r}
+# Use train data as all data (need Survived column for testing)
+raw_dat = titanic::titanic_train
+
+dat = raw_dat %>% 
+  mutate(Embarked = if_else(Embarked == '', 'S', Embarked),
+         Age = if_else(Age == '' | is.na(Age), mean(Age, na.rm = TRUE), Age),
+         Fare = if_else(is.na(Fare), mean(Fare, na.rm = TRUE), Fare),
+         Survived = as.factor(Survived)) %>%
+  select(-Ticket, -Name, -Cabin) %>%
+  as_tibble()
+
+
+# "By Hand"
+set.seed(123)
+training_split = 0.75 #75% data for train, 25% for test
+smp_size = floor(training_split * nrow(dat))
+train_ind = sample(seq_len(nrow(dat)), size = smp_size)
+
+train_dat = dat[train_ind,]
+test_dat = dat[-train_ind,]
+
+
+# "Tidy:
+set.seed(123)
+training_split = 0.75 #75% data for train, 25% for test
+train_dat = dat %>% sample_frac(training_split)
+test_dat = dat %>% anti_join(train_dat, by = 'PassengerId')
+
+
+# Clean up data to remove ID
+train_dat = train_dat %>% select(-PassengerId)
+test_dat = test_dat %>% select(-PassengerId)
+```
+
+```{r}
+mod1 = glm(Survived ~ ., family = binomial(link = 'logit'), data = train_dat)
+summary(mod1)
+```
+
+You notice that some of the values are insignificant. Remove *one* that seems the least likely to impact `Survived`
+```{r}
+mod2 = glm(Survived ~ . - Embarked, family = binomial(link = 'logit'), data = train_dat)
+summary(mod2)
+```
+
+
+```{r}
+mod3 = glm(Survived ~ . - Embarked - Parch, family = binomial(link = 'logit'), data = train_dat)
+summary(mod3)
+```
+
+
+```{r}
+mod4 = glm(Survived ~ . - Embarked - Parch - Fare, family = binomial(link = 'logit'), data = train_dat)
+summary(mod4)
+```
+
+
+## Test your model's accuracy
+```{r}
+cutoff_level = 0.5
+
+results = train_dat %>%
+  add_predictions(model = mod4, var = 'pred', type = 'response') %>%
+  mutate(pred_binary = factor(if_else(pred <= cutoff_level, 0, 1)))
+head(results)
+```
+
+
+```{r}
+cm = confusionMatrix(data=results$pred_binary, reference=results$Survived)
+cm
+```
+
+
+## How does it compare to null error rate?
+
+```{r}
+# Null error rate is defined as always guessing the higher probability (in this case, did not survive)
+train_survived_false = train_dat %>% filter(Survived == 0)  %>% nrow()
+null_error_rate = train_survived_false / nrow(train_dat)
+
+print(paste0('Accuracy: ', 100*round(cm$overall[1], 2), '%'))
+print(paste0('Null Error Rate: ', 100*round(null_error_rate, 2), '%'))
+```
+
+## What is the true positive rate and false positive rate?
+```{r}
+conf_mat = cm$table
+
+tp = conf_mat[2, 2]
+tn = conf_mat[1, 1]
+fn = conf_mat[1, 2]
+fp = conf_mat[2, 1]
+
+tp_rate = tp / (tp + fn) # aka "sensitivity" or "recall" when yes, how often does it predict yes?
+fp_rate = fp / (tn + fp) # aka "specificity" when no, how often does it predict yes?
+
+```
+
+# Create a function to make the "best" model by tuning the cutoff parameter
+```{r}
+model_cutoff = function(df, mod, cutoff_level){ 
+  
+  results = df %>%
+    add_predictions(model = mod, var = 'pred', type = 'response') %>%
+    mutate(pred_binary = factor(if_else(pred <= cutoff_level, 0, 1)))
+  
+  cm = confusionMatrix(data=results$pred_binary, reference=results$Survived)
+  
+  conf_mat = cm$table
+  tn = conf_mat[1,1]
+  fn = conf_mat[2,1]
+  fp = conf_mat[1, 2] 
+  tp = conf_mat[2, 2]
+  
+  tp_rate = tp / (tp + fn) # aka "sensitivity" or "recall" when yes, how often does it predict yes?
+  fp_rate = fp / (tn + fp) # aka "specificity" when no, how often does it predict yes?
+  
+  final_results = tibble(
+    cutoff_level = cutoff_level,
+    tp_rate = tp_rate,
+    fp_rate = fp_rate
+  )
+  
+  return(final_results)
+}
+```
+
+```{r}
+train_dat %>% model_cutoff(mod = mod4, cutoff_level = 0.5)
+```
+
+```{r}
+my_results = tibble(cutoff_level, tp_rate, fp_rate)
+for(i in 1:100){
+  cutoff_level = 1/i
+  tmp = train_dat %>% 
+    model_cutoff(mod = mod4, cutoff_level = cutoff_level)
+  my_results = my_results %>% bind_rows(tmp)
+}
+```
+
+```{r}
+plot(my_results$fp_rate, my_results$tp_rate)
+```
+
