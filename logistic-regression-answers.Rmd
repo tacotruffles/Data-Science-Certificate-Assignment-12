@@ -104,7 +104,8 @@ print(paste0('Accuracy: ', 100*round(cm$overall[1], 2), '%'))
 print(paste0('Null Error Rate: ', 100*round(null_error_rate, 2), '%'))
 ```
 
-## What is the true positive rate and false positive rate?
+## Extract confusion matrix data
+Find true positive, false positive, true negative, false negative. Also find `tp_rate` and `fp_rate`
 ```{r}
 conf_mat = cm$table
 
@@ -147,9 +148,17 @@ model_cutoff = function(df, mod, cutoff_level){
 }
 ```
 
+Your function should output:
+cutoff_level 0.5
+tp_rate 0.76666666...
+fp_rate 0.1869...
+
 ```{r}
 train_dat %>% model_cutoff(mod = mod4, cutoff_level = 0.5)
 ```
+
+
+Iterate through function to create a tibble of true positive rates, false positive rates for cutoff levels from 0 to 1 by 0.01 (0, 0.01, 0.02, ..., 1)
 
 ```{r}
 my_results = tibble(cutoff_level, tp_rate, fp_rate)
@@ -161,7 +170,13 @@ for(i in 1:100){
 }
 ```
 
+Create ROC curve and plot your data points
 ```{r}
 plot(my_results$fp_rate, my_results$tp_rate)
 ```
+
+Pick a cutoff level and defend your selection.
+
+I am choosing 0.6 as a cutoff point because...
+
 

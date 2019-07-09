@@ -116,6 +116,7 @@ fp =
 
 tp_rate =  # aka "sensitivity" or "recall" when yes, how often does it predict yes?
 fp_rate =  # aka "specificity" when no, how often does it predict yes?
+
 ```
 
 # Create a function to make the "best" model by tuning the cutoff parameter
