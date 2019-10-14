@@ -1,0 +1,22 @@
+---
+title: "Assignment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+library('ranger') # install.packages('ranger')
+library("wru") # install.packages('wru') # Bayesian prediction of ethnicity
+
+# Random seed
+set.seed(123)
+```
+
+
+
+Complete the `in_class.Rmd` utilizing random forest and logistic regression. Compare your models. You do not need to perform any of the EDA or test / train again. Copy / paste up until your decision tree from in_class to this file.
+```{r}
+
+```
+

@@ -1,0 +1,65 @@
+---
+title: "In Class"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library('tidyverse')
+library('ranger') # install.packages('ranger')
+library("wru") # install.packages('wru') # Bayesian prediction of ethnicity
+
+# Random seed
+set.seed(123)
+
+# Custom function
+`%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
+```
+
+
+
+
+What is the data set?  
+
+  - Using `data/train.csv` only, because we are not testing on Kaggle.
+```{r}
+dat = read_csv('data/train.csv')
+head(dat)
+```
+
+
+We are looking to predict `Survival` in order to see what variables may lead to people who survived the crash. Follow along: <https://tylerburleigh.com/blog/surviving-the-titanic-with-r-caret/>
+
+
+EDA: 
+  - Look for `NA`
+  - Make plots
+  - Create new features (if it makes sense)  
+  
+```{r}
+
+```
+
+
+
+Select variables
+```{r}
+
+```
+
+
+
+Create test / train split
+```{r}
+
+```
+
+
+
+Build decision tree model with `caret`
+```{r}
+
+```
+
+
+
+
