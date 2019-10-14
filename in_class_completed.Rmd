@@ -1,0 +1,179 @@
+---
+title: "In Class"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('tidyverse')
+library('rattle')
+library('rpart') # install.packages('rpart')
+library('ranger') # install.packages('ranger')
+library('caret')
+
+# Random seed
+set.seed(123)
+
+# Custom function
+`%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
+```
+
+
+What is the data set?  
+
+  - Using `data/train.csv` only, because we are not testing on Kaggle. <https://www.kaggle.com/c/titanic/data>  
+
+```{r}
+dat = read_csv('data/train.csv')
+head(dat)
+```
+
+
+We are looking to predict `Survival` in order to see what variables may lead to people who survived the crash. 
+
+EDA: 
+  - Look for `NA`
+  - Decide on how they should be handled
+  - Make plots
+  - Create new features (if it makes sense)  
+  
+```{r}
+summary(dat)
+```
+
+
+Select variables
+```{r}
+# NA as a percentage of data
+round(colSums(is.na(dat)) / nrow(dat), 4)
+```
+
+
+Lots of `NA` values in Cabin. Looks like `Age` has quite a few as well but could be useful in predicting survival rates, so we should probably impute this value somehow. 
+
+First I will clean up the names, and get `Class` to be our desired outcome class.
+```{r}
+dat_selected = dat %>%
+  janitor::clean_names() %>%
+  select(-passenger_id, -cabin) %>%
+  rename(Class = survived) %>%
+  mutate(Class  = as.factor(Class),
+         sex = as.factor(sex),
+         embarked = as.factor(embarked),
+         id = row_number())
+head(dat_selected)
+```
+
+We have roughly the data set we are looking for, we should split into test/train before moving forward to avoid any contamination of the test data.
+```{r}
+dat_train = dat_selected %>%
+  sample_frac(0.75)
+dat_test = dat_selected %>%
+  anti_join(dat_train, by = 'id') %>%
+  select(-id)
+dat_train = dat_train %>%
+  select(-id)
+```
+
+
+Let's impute the age using the `preProcess` function!
+```{r}
+?preProcess
+```
+
+We will `preProcess` with variables we deem to be important and then do the impute. From this point moving forward, we need to keep track of the steps because these will be used in the test data in order to ensure the models are consistent.
+```{r}
+dat_to_pre_process = dat_train %>% select(-ticket, -name, -embarked)
+mod_pre_process = preProcess(dat_to_pre_process,
+                             method = 'bagImpute')
+dat_train_ages = predict(mod_pre_process, dat_to_pre_process) %>%
+  select(age)
+
+dat_train_clean = dat_train %>%
+  mutate(age = dat_train_ages$age)
+
+
+# Impute model was built, apply to test data to keep up to date
+dat_to_pre_process = dat_test %>% select(-ticket, -name, -embarked)
+dat_test_ages = predict(mod_pre_process, dat_to_pre_process) %>%
+  select(age)
+dat_test_clean = dat_test %>%
+  mutate(age = dat_test_ages$age)
+
+```
+
+
+What can we extract from the name variable?
+```{r}
+head(dat_train_clean)
+```
+
+We can extract a `title` perhaps, name will not really be a great predictor but perhaps title makes more sense.
+```{r}
+# Feature 1 - title - will add into final data
+dat_train_clean %>%
+  mutate(title = as.factor(gsub('(.*, )|(\\..*)', '', name))) %>%
+  select(name, title)
+```
+
+
+```{r}
+# Feature 2 - child
+dat_train_clean %>%
+  mutate(child = if_else(age < 15, 1, 0)) %>%
+  select(child, age)
+```
+
+We can notice that `fares` could be discretized into buckets to perhaps give us a better predictor.
+```{r}
+# Feature 3 - fare_group
+dat_train_clean %>%
+  mutate(fare_group = cut_width(fare, 50, boundary = 0)) %>%
+  group_by(fare_group) %>%
+  count()
+```
+
+
+Set model features into training and test sets
+```{r}
+# Good practice to createa function to do this so you don't miss a feature
+finalize_data = function(df){
+  final_data = df %>%
+    mutate(title = as.factor(gsub('(.*, )|(\\..*)', '', name))) %>%
+    mutate(child = if_else(age < 15, 1, 0)) %>%
+    mutate(fare_group = cut_width(fare, 50, boundary = 0)) %>%
+    select(Class, pclass, sex, age, sib_sp, parch, title, child, fare_group)
+  return(final_data)
+}
+```
+
+
+```{r}
+dat_train_final = finalize_data(dat_train_clean)
+dat_test_final = finalize_data(dat_test_clean)
+```
+
+
+Build **decision tree** model with `caret` and `rpart`
+```{r}
+train_control = trainControl(
+  method = 'cv',
+  number = 5,
+  allowParallel = TRUE)
+
+model_rpart = train(
+  Class ~ .,
+  data = dat_train_final,
+  method = 'rpart',
+  trControl = train_control
+)
+
+model_rpart
+```
+
+```{r}
+fancyRpartPlot(model_rpart$finalModel)
+```
+
+
+
