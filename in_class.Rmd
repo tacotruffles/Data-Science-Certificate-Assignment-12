@@ -4,15 +4,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library('tidyverse')
-library('ranger') # install.packages('ranger')
-library("wru") # install.packages('wru') # Bayesian prediction of ethnicity
+library('rpart') # install.packages('rpart')
 
 # Random seed
 set.seed(123)
-
-# Custom function
-`%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 ```
 
 
