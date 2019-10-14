@@ -15,7 +15,7 @@ set.seed(123)
 
 
 
-Complete the `in_class.Rmd` utilizing random forest and logistic regression. Compare your models. You do not need to perform any of the EDA or test / train again. Copy / paste up until your decision tree from in_class to this file.
+Complete the `in_class.Rmd` utilizing random forest and logistic regression. Compare your models. You do not need to perform any of the EDA or test / train again. Copy / paste up until your **decision tree** from in_class to this file.
 ```{r}
 
 ```

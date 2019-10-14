@@ -16,11 +16,9 @@ set.seed(123)
 ```
 
 
-
-
 What is the data set?  
 
-  - Using `data/train.csv` only, because we are not testing on Kaggle.
+  - Using `data/train.csv` only, because we are not testing on Kaggle. <https://www.kaggle.com/c/titanic/data>
 ```{r}
 dat = read_csv('data/train.csv')
 head(dat)
@@ -32,13 +30,13 @@ We are looking to predict `Survival` in order to see what variables may lead to 
 
 EDA: 
   - Look for `NA`
+  - Decide on how they should be handled
   - Make plots
   - Create new features (if it makes sense)  
   
 ```{r}
 
 ```
-
 
 
 Select variables
@@ -55,7 +53,7 @@ Create test / train split
 
 
 
-Build decision tree model with `caret`
+Build **decision tree** model with `caret` and `rpart`
 ```{r}
 
 ```
