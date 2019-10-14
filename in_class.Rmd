@@ -25,8 +25,7 @@ head(dat)
 ```
 
 
-We are looking to predict `Survival` in order to see what variables may lead to people who survived the crash. Follow along: <https://tylerburleigh.com/blog/surviving-the-titanic-with-r-caret/>
-
+We are looking to predict `Survival` in order to see what variables may lead to people who survived the crash. 
 
 EDA: 
   - Look for `NA`
