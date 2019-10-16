@@ -6,12 +6,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library('tidyverse')
-library('rpart') # install.packages('rpart')
+library('rpart') #install.packages('rpart')
+library('janitor')
 
 # Random seed
 set.seed(123)
 ```
 
+########
+######## SEE IN_CLASS_COMPLETED.RMD IN ORIGINAL REPO 
+########
 
 What is the data set?  
 
@@ -21,6 +25,41 @@ dat = read_csv('data/train.csv')
 head(dat)
 ```
 
+```{r}
+colSums(is.na(dat))
+# Throw out Cabin, as 687 are NA
+# Impute Age, as 117 are NA
+```
+
+```{r}
+dat %>%
+  group_by(Survived, Age) %>%
+  count() %>%
+  ggplot(aes(x = Age)) +
+  geom_histogram()
+
+#Check how much Age and Survival are correlated
+dat %>%
+  ggplot(aes(x = factor(Survived), y= Age)) +
+  geom_boxplot()
+```
+
+#TODO Items:
+  - Remove Cabin....majority missing
+  - Impute Age
+  = Remove Passenger id
+  - ? used name for "Last name" only or title
+  - Remove ticket number - not standariez
+  - Embarked use mode to impute
+  
+
+```{r}
+dat %>%
+  group_by(Name) %>%
+  count() %>%
+  arrange(-n)
+``` 
+
 
 We are looking to predict `Survival` in order to see what variables may lead to people who survived the crash. 
 
@@ -29,15 +68,46 @@ EDA:
   - Decide on how they should be handled
   - Make plots
   - Create new features (if it makes sense)  
+```{r}
+dat  %>%
+  group_by(Survived) %>%
+  summarize(n = n()) %>%
+  mutate(n_pct  = n / sum(n))
+```
   
 ```{r}
+dat %>%
+  # group_by(Survived) %>%
+  ggplot(aes(x=factor(Pclass),y=Age)) +
+  geom_boxplot()
 
+dat %>%
+  group_by(Survived) %>%
+  ggplot(aes(x=Pclass)) +
+  geom_bar()
+
+dat %>%
+  group_by(Pclass) %>%
+  count() %>%
+  arrange(-n)
 ```
 
 
 Select variables
 ```{r}
+dat_trimmed <- dat %>%
+  select(-Cabin, -Ticket, -PassengerId)
 
+#Impune each split TEST/TRAIN because we're using mode to fill in NAs in Embarked
+dat %>%
+  group_by(Embarked) %>%
+  count()
+
+dat_clean = dat %>%
+  mutate(
+    Embarked = if_else(is.na(Embarked), mode(Embarked), Embarked)
+  )
+  
 ```
 
 
